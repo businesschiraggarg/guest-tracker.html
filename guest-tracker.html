@@ -7,7 +7,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.383.0/umd/lucide.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; }
@@ -26,25 +25,20 @@
 <script type="text/babel">
 const { useState, useMemo, useEffect, useCallback } = React;
 
-// ─── Lucide icons (via UMD global) ───────────────────────────────────────────
-function Icon({ name, size = 16, style = {}, className = '' }) {
-  const ref = React.useRef(null);
-  useEffect(() => {
-    if (ref.current && window.lucide) {
-      ref.current.innerHTML = '';
-      const icon = window.lucide.createElement(window.lucide[name] || window.lucide.HelpCircle);
-      icon.setAttribute('width', size);
-      icon.setAttribute('height', size);
-      icon.setAttribute('stroke', 'currentColor');
-      icon.setAttribute('stroke-width', '2');
-      icon.setAttribute('fill', 'none');
-      icon.setAttribute('stroke-linecap', 'round');
-      icon.setAttribute('stroke-linejoin', 'round');
-      ref.current.appendChild(icon);
-    }
-  }, [name, size]);
-  return <span ref={ref} style={{ display:'inline-flex', alignItems:'center', ...style }} className={className} />;
-}
+// ─── Inline SVG icons — no CDN, always renders ────────────────────────────────
+const SVG = {
+  search:   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  plus:     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  plusSm:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  x:        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  xSm:      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  back:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+  user:     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  clock:    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  mapPin:   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+  refresh:  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
+  wifiOff:  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
+};
 
 // ─── Paste your Apps Script Web App deployment URL here ──────────────────────
 const API_URL = '';
@@ -63,7 +57,7 @@ const C = {
   white:     '#FFFFFF',
 };
 
-// ─── Demo data (used only when API_URL is blank) ──────────────────────────────
+// ─── Demo data ────────────────────────────────────────────────────────────────
 function daysFromNow(n) {
   const d = new Date(); d.setDate(d.getDate() + n);
   return d.toISOString().split('T')[0];
@@ -72,12 +66,11 @@ function hoursAgo(n) {
   const d = new Date(); d.setHours(d.getHours() - n);
   return d.toISOString();
 }
-
 const SEED_GUESTS = [
-  { id:'g1', room:'101', guestName:'Mr. & Mrs. Garg',      checkIn:daysFromNow(-2), checkOut:daysFromNow(2) },
-  { id:'g2', room:'214', guestName:'Ms. Aanya Kapoor',     checkIn:daysFromNow(-1), checkOut:daysFromNow(1) },
-  { id:'g3', room:'308', guestName:'Mr. James Whitfield',  checkIn:daysFromNow(-3), checkOut:daysFromNow(4) },
-  { id:'g4', room:'112', guestName:'Dr. Meera Iyer',       checkIn:daysFromNow(0),  checkOut:daysFromNow(3) },
+  { id:'g1', room:'101', guestName:'Mr. & Mrs. Garg',     checkIn:daysFromNow(-2), checkOut:daysFromNow(2) },
+  { id:'g2', room:'214', guestName:'Ms. Aanya Kapoor',    checkIn:daysFromNow(-1), checkOut:daysFromNow(1) },
+  { id:'g3', room:'308', guestName:'Mr. James Whitfield', checkIn:daysFromNow(-3), checkOut:daysFromNow(4) },
+  { id:'g4', room:'112', guestName:'Dr. Meera Iyer',      checkIn:daysFromNow(0),  checkOut:daysFromNow(3) },
 ];
 const SEED_NOTES = [
   { id:'n1', guestId:'g1', metBy:'Priya Sharma', text:"Checked in, very happy with the suite upgrade. Mentioned it's their anniversary this week.", timestamp:hoursAgo(28) },
@@ -100,11 +93,10 @@ function fmtDateTime(d) {
 }
 function nightsLeft(checkOut) {
   const today = new Date(); today.setHours(0,0,0,0);
-  const out = new Date(checkOut + 'T00:00:00');
-  return Math.round((out - today) / 86400000);
+  return Math.round((new Date(checkOut + 'T00:00:00') - today) / 86400000);
 }
 
-// ─── Shared style objects ─────────────────────────────────────────────────────
+// ─── Shared styles ────────────────────────────────────────────────────────────
 const labelSt = {
   display:'block', fontSize:'12px', fontWeight:600, color:C.inkSoft,
   marginBottom:'6px', textTransform:'uppercase', letterSpacing:'0.03em',
@@ -127,16 +119,8 @@ const sheetBody = {
 function StatusPill({ checkOut }) {
   const n = nightsLeft(checkOut);
   if (n <= 0) return null;
-  if (n === 1) return (
-    <span style={{ fontSize:'11px', fontWeight:600, padding:'3px 8px', borderRadius:'4px', background:'#FBEAEA', color:'#A23B3B', whiteSpace:'nowrap' }}>
-      Departs today
-    </span>
-  );
-  return (
-    <span style={{ fontSize:'11px', fontWeight:600, padding:'3px 8px', borderRadius:'4px', background:'#EEF3EC', color:'#4A7A52', whiteSpace:'nowrap' }}>
-      {n} nights left
-    </span>
-  );
+  if (n === 1) return <span style={{ fontSize:'11px', fontWeight:600, padding:'3px 8px', borderRadius:'4px', background:'#FBEAEA', color:'#A23B3B', whiteSpace:'nowrap' }}>Departs today</span>;
+  return <span style={{ fontSize:'11px', fontWeight:600, padding:'3px 8px', borderRadius:'4px', background:'#EEF3EC', color:'#4A7A52', whiteSpace:'nowrap' }}>{n} nights left</span>;
 }
 
 // ─── New guest form ───────────────────────────────────────────────────────────
@@ -150,8 +134,8 @@ function NewGuestForm({ onSave, onCancel }) {
       <div style={sheetBody}>
         <div style={{ position:'sticky', top:0, background:C.white, zIndex:1, padding:'20px 20px 16px', borderBottom:`1px solid ${C.line}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <h2 style={{ margin:0, fontSize:'18px', fontWeight:600, color:C.navy, fontFamily:'Georgia, serif' }}>Log a new guest</h2>
-          <button onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', padding:'6px', color:C.inkSoft, display:'flex' }}>
-            <Icon name="X" size={20} />
+          <button onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', padding:'6px', color:C.inkSoft, display:'flex', alignItems:'center' }}>
+            {SVG.x}
           </button>
         </div>
         <div style={{ padding:'20px' }}>
@@ -196,7 +180,7 @@ function NewGuestForm({ onSave, onCancel }) {
 // ─── Add note form ────────────────────────────────────────────────────────────
 function AddNoteForm({ guest, onSave, onCancel }) {
   const [metBy, setMetBy] = useState('');
-  const [text, setText] = useState('');
+  const [text, setText]   = useState('');
   const ok = metBy.trim() && text.trim();
 
   return (
@@ -207,8 +191,8 @@ function AddNoteForm({ guest, onSave, onCancel }) {
             <h2 style={{ margin:0, fontSize:'18px', fontWeight:600, color:C.navy, fontFamily:'Georgia, serif' }}>Add a note</h2>
             <p style={{ margin:'2px 0 0', fontSize:'13px', color:C.inkSoft }}>Room {guest.room} · {guest.guestName}</p>
           </div>
-          <button onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', padding:'6px', color:C.inkSoft, display:'flex' }}>
-            <Icon name="X" size={20} />
+          <button onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', padding:'6px', color:C.inkSoft, display:'flex', alignItems:'center' }}>
+            {SVG.x}
           </button>
         </div>
         <div style={{ padding:'20px' }}>
@@ -249,8 +233,8 @@ function GuestCard({ guest, latestNote, noteCount, onClick }) {
       </p>
       <div style={{ display:'flex', alignItems:'center', gap:'14px', fontSize:'12px', color:C.goldDark }}>
         {latestNote && (<>
-          <span style={{ display:'flex', alignItems:'center', gap:'4px' }}><Icon name="User" size={12} /> {latestNote.metBy}</span>
-          <span style={{ display:'flex', alignItems:'center', gap:'4px' }}><Icon name="Clock" size={12} /> {fmtDateTime(latestNote.timestamp)}</span>
+          <span style={{ display:'flex', alignItems:'center', gap:'4px' }}>{SVG.user} {latestNote.metBy}</span>
+          <span style={{ display:'flex', alignItems:'center', gap:'4px' }}>{SVG.clock} {fmtDateTime(latestNote.timestamp)}</span>
         </>)}
         {noteCount > 1 && <span style={{ marginLeft:'auto', fontSize:'11px', color:C.inkSoft }}>{noteCount} notes</span>}
       </div>
@@ -258,7 +242,7 @@ function GuestCard({ guest, latestNote, noteCount, onClick }) {
   );
 }
 
-// ─── Note row (timeline entry) ────────────────────────────────────────────────
+// ─── Note row ─────────────────────────────────────────────────────────────────
 function NoteRow({ note, isFirst }) {
   return (
     <div style={{ display:'flex', gap:'12px', marginBottom:'16px' }}>
@@ -277,34 +261,43 @@ function NoteRow({ note, isFirst }) {
   );
 }
 
-// ─── Guest detail sheet ───────────────────────────────────────────────────────
+// ─── Guest detail — full screen, with back button ─────────────────────────────
 function GuestDetail({ guest, notes, onClose, onAddNote }) {
   return (
-    <div style={overlayWrap}>
-      <div style={sheetBody}>
-        <div style={{ background:`linear-gradient(135deg, ${C.navy}, ${C.navyDark})`, padding:'24px 20px', borderRadius:'16px 16px 0 0', position:'relative' }}>
-          <button onClick={onClose} style={{ position:'absolute', top:'18px', right:'18px', background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'30px', height:'30px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:C.white }}>
-            <Icon name="X" size={16} />
+    <div style={{ position:'fixed', inset:0, background:C.cream, zIndex:50, overflowY:'auto' }}>
+
+      {/* Navy header with back button */}
+      <div style={{ background:`linear-gradient(135deg, ${C.navy}, ${C.navyDark})`, padding:'0 20px 24px' }}>
+        {/* Back button row */}
+        <div style={{ paddingTop:'16px', paddingBottom:'12px' }}>
+          <button onClick={onClose} style={{ display:'flex', alignItems:'center', gap:'6px', background:'none', border:'none', cursor:'pointer', color:C.goldLight, fontSize:'14px', fontWeight:600, padding:0 }}>
+            {SVG.back} Back
           </button>
-          <div style={{ display:'flex', alignItems:'baseline', gap:'12px', marginBottom:'6px' }}>
-            <span style={{ fontSize:'32px', fontWeight:700, color:C.goldLight, fontFamily:'Georgia, serif' }}>{guest.room}</span>
-            <StatusPill checkOut={guest.checkOut} />
-          </div>
-          <h2 style={{ margin:'0 0 8px', fontSize:'20px', fontWeight:600, color:C.white }}>{guest.guestName}</h2>
-          <p style={{ margin:0, fontSize:'13px', color:'#C9D4E3' }}>{fmtDate(guest.checkIn)} → {fmtDate(guest.checkOut)}</p>
         </div>
-        <div style={{ padding:'20px' }}>
-          <button onClick={onAddNote} style={{ width:'100%', padding:'13px', borderRadius:'8px', border:`1.5px solid ${C.navy}`, background:C.white, color:C.navy, fontSize:'14.5px', fontWeight:600, cursor:'pointer', marginBottom:'22px', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}>
-            <Icon name="Plus" size={16} /> Add a note
-          </button>
-          <p style={{ margin:'0 0 14px', fontSize:'11px', color:C.inkSoft, textTransform:'uppercase', letterSpacing:'0.03em', fontWeight:600 }}>
-            Timeline — {notes.length} {notes.length === 1 ? 'entry' : 'entries'}
-          </p>
-          {notes.length === 0
-            ? <p style={{ fontSize:'14px', color:C.inkSoft }}>No notes yet for this guest.</p>
-            : notes.map((n, i) => <NoteRow key={n.id} note={n} isFirst={i === 0} />)
-          }
+
+        {/* Room + guest info */}
+        <div style={{ display:'flex', alignItems:'baseline', gap:'12px', marginBottom:'6px' }}>
+          <span style={{ fontSize:'32px', fontWeight:700, color:C.goldLight, fontFamily:'Georgia, serif' }}>{guest.room}</span>
+          <StatusPill checkOut={guest.checkOut} />
         </div>
+        <h2 style={{ margin:'0 0 8px', fontSize:'20px', fontWeight:600, color:C.white }}>{guest.guestName}</h2>
+        <p style={{ margin:0, fontSize:'13px', color:'#C9D4E3' }}>{fmtDate(guest.checkIn)} → {fmtDate(guest.checkOut)}</p>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding:'20px 16px 100px', maxWidth:'560px', margin:'0 auto' }}>
+        <button onClick={onAddNote} style={{ width:'100%', padding:'13px', borderRadius:'8px', border:`1.5px solid ${C.navy}`, background:C.white, color:C.navy, fontSize:'14.5px', fontWeight:600, cursor:'pointer', marginBottom:'22px', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
+          {SVG.plusSm} Add a note
+        </button>
+
+        <p style={{ margin:'0 0 14px', fontSize:'11px', color:C.inkSoft, textTransform:'uppercase', letterSpacing:'0.03em', fontWeight:600 }}>
+          Timeline — {notes.length} {notes.length === 1 ? 'entry' : 'entries'}
+        </p>
+
+        {notes.length === 0
+          ? <p style={{ fontSize:'14px', color:C.inkSoft }}>No notes yet for this guest.</p>
+          : notes.map((n, i) => <NoteRow key={n.id} note={n} isFirst={i === 0} />)
+        }
       </div>
     </div>
   );
@@ -312,14 +305,14 @@ function GuestDetail({ guest, notes, onClose, onAddNote }) {
 
 // ─── Main app ─────────────────────────────────────────────────────────────────
 function App() {
-  const [guests, setGuests]       = useState(SEED_GUESTS);
-  const [notes, setNotes]         = useState(SEED_NOTES);
-  const [search, setSearch]       = useState('');
+  const [guests, setGuests]           = useState(SEED_GUESTS);
+  const [notes, setNotes]             = useState(SEED_NOTES);
+  const [search, setSearch]           = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [selectedId, setSelectedId]   = useState(null);
-  const [loading, setLoading]     = useState(false);
-  const [connected, setConnected] = useState(!!API_URL);
+  const [loading, setLoading]         = useState(false);
+  const [connected, setConnected]     = useState(!!API_URL);
 
   const loadData = useCallback(async () => {
     if (!API_URL) return;
@@ -330,11 +323,8 @@ function App() {
       setGuests(data.guests || []);
       setNotes(data.notes || []);
       setConnected(true);
-    } catch {
-      setConnected(false);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setConnected(false); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -370,12 +360,12 @@ function App() {
   }, [activeGuests, notesByGuest, search]);
 
   const archivedCount = guests.filter(g => nightsLeft(g.checkOut) <= 0).length;
-  const selected = guests.find(g => g.id === selectedId);
+  const selected      = guests.find(g => g.id === selectedId);
   const selectedNotes = selectedId ? (notesByGuest[selectedId] || []) : [];
 
   async function handleCreateGuest(form) {
     const guestId = `g${Date.now()}`;
-    const noteId  = `n${Date.now()}`;
+    const noteId  = `n${Date.now() + 1}`;
     const newGuest = { id:guestId, room:form.room, guestName:form.guestName, checkIn:form.checkIn, checkOut:form.checkOut };
     const newNote  = { id:noteId, guestId, metBy:form.metBy, text:form.note, timestamp:new Date().toISOString() };
     setGuests(p => [...p, newGuest]);
@@ -388,7 +378,7 @@ function App() {
   }
 
   async function handleAddNote({ metBy, text }) {
-    const noteId = `n${Date.now()}`;
+    const noteId  = `n${Date.now()}`;
     const newNote = { id:noteId, guestId:selectedId, metBy, text, timestamp:new Date().toISOString() };
     setNotes(p => [...p, newNote]);
     setShowAddNote(false);
@@ -418,18 +408,19 @@ function App() {
             <span style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'11px', color: connected ? '#9FCBA8' : '#E0A0A0', fontWeight:600 }}>
               {connected
                 ? <span style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#9FCBA8', display:'inline-block' }} />
-                : <Icon name="WifiOff" size={11} />}
+                : SVG.wifiOff}
               {connected ? 'Synced with sheet' : 'Offline — showing last known data'}
             </span>
-            <button onClick={loadData} disabled={loading} title="Refresh" style={{ background:'none', border:'none', cursor:'pointer', color:'#C9D4E3', display:'flex', alignItems:'center', padding:'2px' }}>
-              <Icon name="RefreshCw" size={12} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            <button onClick={loadData} disabled={loading} title="Refresh"
+              style={{ background:'none', border:'none', cursor:'pointer', color:'#C9D4E3', display:'flex', alignItems:'center', padding:'2px' }}>
+              <span style={{ display:'inline-flex', animation: loading ? 'spin 1s linear infinite' : 'none' }}>{SVG.refresh}</span>
             </button>
           </div>
         )}
 
         <div style={{ position:'relative' }}>
-          <span style={{ position:'absolute', left:'14px', top:'50%', transform:'translateY(-50%)', color:C.inkSoft, display:'flex' }}>
-            <Icon name="Search" size={17} />
+          <span style={{ position:'absolute', left:'14px', top:'50%', transform:'translateY(-50%)', color:C.inkSoft, display:'flex', pointerEvents:'none' }}>
+            {SVG.search}
           </span>
           <input
             value={search}
@@ -440,7 +431,7 @@ function App() {
         </div>
       </div>
 
-      {/* ── List ── */}
+      {/* ── Guest list ── */}
       <div style={{ padding:'18px 16px 100px', maxWidth:'720px', margin:'0 auto' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
           <p style={{ margin:0, fontSize:'13px', fontWeight:600, color:C.inkSoft, textTransform:'uppercase', letterSpacing:'0.03em' }}>
@@ -456,7 +447,7 @@ function App() {
         {filtered.length === 0
           ? (
             <div style={{ textAlign:'center', padding:'60px 20px', color:C.inkSoft }}>
-              <Icon name="MapPin" size={32} style={{ opacity:0.3, marginBottom:'12px' }} />
+              <div style={{ opacity:0.3, marginBottom:'12px', display:'flex', justifyContent:'center' }}>{SVG.mapPin}</div>
               <p style={{ margin:0, fontSize:'14px' }}>
                 {search ? 'No matching guests or notes found.' : 'No active guests logged yet.'}
               </p>
@@ -469,8 +460,9 @@ function App() {
       </div>
 
       {/* ── FAB ── */}
-      <button onClick={() => setShowNewForm(true)} style={{ position:'fixed', bottom:'24px', right:'20px', zIndex:20, width:'58px', height:'58px', borderRadius:'50%', border:'none', background:C.gold, color:C.white, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 6px 20px rgba(169,130,57,0.4)' }}>
-        <Icon name="Plus" size={26} />
+      <button onClick={() => setShowNewForm(true)}
+        style={{ position:'fixed', bottom:'24px', right:'20px', zIndex:20, width:'58px', height:'58px', borderRadius:'50%', border:'none', background:C.gold, color:C.white, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 6px 20px rgba(169,130,57,0.4)', fontSize:'32px', lineHeight:1 }}>
+        +
       </button>
 
       {/* ── Modals ── */}
@@ -484,7 +476,7 @@ function App() {
         <GuestDetail guest={selected} notes={selectedNotes} onClose={() => setSelectedId(null)} onAddNote={() => setShowAddNote(true)} />
       )}
 
-      {/* ── Footer credit ── */}
+      {/* ── Credit ── */}
       <p style={{ position:'fixed', bottom:'8px', left:0, right:0, textAlign:'center', fontSize:'10px', color:'rgba(11,37,69,0.3)', pointerEvents:'none' }}>
         Developer: Chirag.Garg
       </p>
